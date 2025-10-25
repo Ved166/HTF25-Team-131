@@ -223,7 +223,7 @@ export default function EventDetail() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {event.agenda.map((item, idx) => (
+                  {agenda.map((item, idx) => (
                     <div key={idx} className="flex gap-4 items-start" data-testid={`agenda-item-${idx}`}>
                       <div className="w-24 shrink-0 text-sm font-semibold text-primary">{item.time}</div>
                       <div className="flex-1 text-sm">{item.activity}</div>
