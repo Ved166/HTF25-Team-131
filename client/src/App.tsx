@@ -10,6 +10,8 @@ import EventDetail from "@/pages/event-detail";
 import Clubs from "@/pages/clubs";
 import ClubDetail from "@/pages/club-detail";
 import NotFound from "@/pages/not-found";
+import AdminLogin from "@/pages/admin/login";
+import AdminDashboard from "@/pages/admin/dashboard";
 
 function Router() {
   return (
@@ -20,6 +22,8 @@ function Router() {
       <Route path="/events/:id" component={EventDetail} />
       <Route path="/clubs" component={Clubs} />
       <Route path="/clubs/:id" component={ClubDetail} />
+      <Route path="/admin/login" component={AdminLogin} />
+      <Route path="/admin/dashboard" component={AdminDashboard} />
       <Route component={NotFound} />
     </Switch>
   );

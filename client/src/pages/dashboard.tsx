@@ -79,6 +79,9 @@ export default function Dashboard() {
             </div>
 
             <div className="flex items-center gap-4">
+              <Link href="/admin/login">
+                <Button variant="ghost" size="sm">Admin</Button>
+              </Link>
               <Button variant="ghost" size="icon" className="relative" data-testid="button-notifications">
                 <Bell className="h-5 w-5" />
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full" />

@@ -96,6 +96,9 @@ export default function ClubDetail() {
               <Link href="/events">
                 <Button variant="ghost" size="sm" data-testid="button-events">Events</Button>
               </Link>
+              <Link href="/admin/login">
+                <Button variant="ghost" size="sm">Admin</Button>
+              </Link>
               <Button variant="ghost" size="icon" data-testid="button-notifications">
                 <Bell className="h-5 w-5" />
               </Button>
@@ -134,14 +137,14 @@ export default function ClubDetail() {
                 <h1 className="text-3xl md:text-4xl font-bold">{club.name}</h1>
                 <Badge variant="secondary" className="w-fit">{club.category}</Badge>
               </div>
-              <div className="flex items-center gap-6 text-sm text-muted-foreground">
+                <div className="flex items-center gap-6 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
-                  <span>{club.members} members</span>
+                  <span>{club.memberCount} members</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
-                  <span>{club.upcomingEvents} upcoming events</span>
+                  <span>{events.length} upcoming events</span>
                 </div>
               </div>
             </div>
@@ -181,20 +184,20 @@ export default function ClubDetail() {
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <div className="text-sm font-semibold mb-1">Founded</div>
-                    <div className="text-muted-foreground">{club.founded}</div>
+                      <div className="text-sm font-semibold mb-1">Founded</div>
+                      <div className="text-muted-foreground">{(club as any).founded ?? '—'}</div>
                   </div>
                   <div>
                     <div className="text-sm font-semibold mb-1">Contact</div>
-                    <div className="text-muted-foreground">{club.email}</div>
+                      <div className="text-muted-foreground">{(club as any).email ?? 'n/a'}</div>
                   </div>
                   <div>
                     <div className="text-sm font-semibold mb-1">Meetings</div>
-                    <div className="text-muted-foreground">{club.meetings}</div>
+                      <div className="text-muted-foreground">{(club as any).meetings ?? '—'}</div>
                   </div>
                   <div>
                     <div className="text-sm font-semibold mb-1">Location</div>
-                    <div className="text-muted-foreground">{club.location}</div>
+                      <div className="text-muted-foreground">{(club as any).location ?? '—'}</div>
                   </div>
                 </div>
               </CardContent>
@@ -243,7 +246,7 @@ export default function ClubDetail() {
           <TabsContent value="members" className="space-y-6">
             <Card>
               <CardHeader>
-                <h2 className="text-2xl font-bold">Club Members ({club.members})</h2>
+                <h2 className="text-2xl font-bold">Club Members ({club.memberCount})</h2>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
@@ -264,12 +267,12 @@ export default function ClubDetail() {
           </TabsContent>
 
           <TabsContent value="announcements" className="space-y-4">
-            {announcements.map((announcement) => (
+            {clubAnnouncements.map((announcement) => (
               <Card key={announcement.id} data-testid={`announcement-${announcement.id}`}>
                 <CardHeader>
                   <div className="flex items-start justify-between gap-4">
                     <h3 className="text-xl font-semibold">{announcement.title}</h3>
-                    <span className="text-sm text-muted-foreground whitespace-nowrap">{announcement.date}</span>
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">{announcement.date}</span>
                   </div>
                 </CardHeader>
                 <CardContent>

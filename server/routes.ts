@@ -7,9 +7,105 @@ import {
   insertRegistrationSchema,
   insertFollowerSchema,
   insertAnnouncementSchema,
+  loginSchema,
+  insertAdminSchema,
 } from "@shared/schema";
+import session from "express-session";
+import MemoryStore from "memorystore";
+
+const SessionStore = MemoryStore(session);
+
+// Middleware to check if user is authenticated
+const requireAuth = (req: any, res: any, next: any) => {
+  if (req.session?.admin) {
+    return next();
+  }
+  res.status(401).json({ error: "Unauthorized" });
+};
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup session middleware
+  app.use(
+    session({
+      cookie: { maxAge: 86400000 }, // 24 hours
+      store: new SessionStore({
+        checkPeriod: 86400000 // prune expired entries every 24h
+      }),
+      resave: false,
+      saveUninitialized: false,
+      secret: process.env.SESSION_SECRET || "development_secret"
+    })
+  );
+
+  // ===== ADMIN AUTH =====
+  
+  // Admin login
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const credentials = loginSchema.parse(req.body);
+      const admin = await storage.getAdminByEmail(credentials.email);
+      
+      if (!admin || !(await storage.validateAdminPassword(admin, credentials.password))) {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+
+      // Store admin in session
+      (req.session as any).admin = {
+        id: admin.id,
+        email: admin.email,
+        name: admin.name,
+        clubId: admin.clubId,
+        isSuper: admin.isSuper
+      };
+
+      res.json({
+        id: admin.id,
+        email: admin.email,
+        name: admin.name,
+        clubId: admin.clubId,
+        isSuper: admin.isSuper
+      });
+    } catch (error) {
+      res.status(400).json({ error: "Invalid credentials" });
+    }
+  });
+
+  // Admin logout
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ error: "Failed to logout" });
+      }
+      res.status(200).json({ message: "Logged out successfully" });
+    });
+  });
+
+  // Get current admin session
+  app.get("/api/auth/me", requireAuth, (req, res) => {
+    res.json((req.session as any).admin);
+  });
+
+  // Create admin (super admin only)
+  app.post("/api/admins", requireAuth, async (req, res) => {
+    const session = (req.session as any).admin;
+    if (!session.isSuper) {
+      return res.status(403).json({ error: "Only super admins can create new admins" });
+    }
+
+    try {
+      const adminData = insertAdminSchema.parse(req.body);
+      const admin = await storage.createAdmin(adminData);
+      res.status(201).json({
+        id: admin.id,
+        email: admin.email,
+        name: admin.name,
+        clubId: admin.clubId,
+        isSuper: admin.isSuper
+      });
+    } catch (error) {
+      res.status(400).json({ error: "Invalid admin data" });
+    }
+  });
   // ===== CLUBS =====
   
   // Get all clubs
@@ -35,8 +131,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create club
-  app.post("/api/clubs", async (req, res) => {
+  // Create club (admin only)
+  app.post("/api/clubs", requireAuth, async (req, res) => {
     try {
       const validatedData = insertClubSchema.parse(req.body);
       const club = await storage.createClub(validatedData);
@@ -46,32 +142,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update club
-  app.patch("/api/clubs/:id", async (req, res) => {
-    try {
-      const club = await storage.updateClub(req.params.id, req.body);
-      if (!club) {
-        return res.status(404).json({ error: "Club not found" });
+    // Update club (admin only)
+    app.patch("/api/clubs/:id", requireAuth, async (req, res) => {
+      const session = (req.session as any).admin;
+      if (!session.isSuper && session.clubId !== req.params.id) {
+        return res.status(403).json({ error: "Not authorized to update this club" });
       }
-      res.json(club);
-    } catch (error) {
-      res.status(400).json({ error: "Failed to update club" });
-    }
-  });
 
-  // Delete club
-  app.delete("/api/clubs/:id", async (req, res) => {
-    try {
-      const deleted = await storage.deleteClub(req.params.id);
-      if (!deleted) {
-        return res.status(404).json({ error: "Club not found" });
+      try {
+        const club = await storage.updateClub(req.params.id, req.body);
+        if (!club) {
+          return res.status(404).json({ error: "Club not found" });
+        }
+        res.json(club);
+      } catch (error) {
+        res.status(400).json({ error: "Failed to update club" });
       }
-      res.status(204).send();
-    } catch (error) {
-      res.status(500).json({ error: "Failed to delete club" });
-    }
-  });
+    });
 
+    // Delete club (super admin only)
+    app.delete("/api/clubs/:id", requireAuth, async (req, res) => {
+      const session = (req.session as any).admin;
+      if (!session.isSuper) {
+        return res.status(403).json({ error: "Only super admins can delete clubs" });
+      }
+
+      try {
+        const deleted = await storage.deleteClub(req.params.id);
+        if (!deleted) {
+          return res.status(404).json({ error: "Club not found" });
+        }
+        res.status(204).send();
+      } catch (error) {
+        res.status(500).json({ error: "Failed to delete club" });
+      }
+    });
   // ===== EVENTS =====
   
   // Get all events

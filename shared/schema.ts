@@ -1,11 +1,20 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, boolean } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  varchar,
+  timestamp,
+  integer,
+  boolean,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Clubs
 export const clubs = pgTable("clubs", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   description: text("description").notNull(),
   category: text("category").notNull(),
@@ -25,7 +34,9 @@ export type Club = typeof clubs.$inferSelect;
 
 // Events
 export const events = pgTable("events", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   clubId: varchar("club_id").notNull(),
   title: text("title").notNull(),
   description: text("description").notNull(),
@@ -49,7 +60,9 @@ export type Event = typeof events.$inferSelect;
 
 // Event Registrations
 export const registrations = pgTable("registrations", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   eventId: varchar("event_id").notNull(),
   studentName: text("student_name").notNull(),
   studentEmail: text("student_email").notNull(),
@@ -68,7 +81,9 @@ export type Registration = typeof registrations.$inferSelect;
 
 // Club Followers
 export const followers = pgTable("followers", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   clubId: varchar("club_id").notNull(),
   studentName: text("student_name").notNull(),
   studentEmail: text("student_email").notNull(),
@@ -83,9 +98,44 @@ export const insertFollowerSchema = createInsertSchema(followers).omit({
 export type InsertFollower = z.infer<typeof insertFollowerSchema>;
 export type Follower = typeof followers.$inferSelect;
 
+// Admins
+export const admins = pgTable("admins", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  email: text("email").notNull().unique(),
+  password: text("password").notNull(), // Will store hashed password
+  name: text("name").notNull(),
+  clubId: varchar("club_id").references(() => clubs.id), // Optional: if admin is associated with specific club
+  isSuper: boolean("is_super").notNull().default(false), // Super admin can manage all clubs
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertAdminSchema = createInsertSchema(admins)
+  .omit({ id: true, createdAt: true })
+  .extend({
+    // Add password confirmation
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
+
+export const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+});
+
+export type InsertAdmin = Omit<z.infer<typeof insertAdminSchema>, "confirmPassword">;
+export type Admin = typeof admins.$inferSelect;
+export type LoginCredentials = z.infer<typeof loginSchema>;
+
 // Announcements
 export const announcements = pgTable("announcements", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   clubId: varchar("club_id").notNull(),
   title: text("title").notNull(),
   content: text("content").notNull(),

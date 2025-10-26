@@ -9,8 +9,11 @@ import {
   type InsertFollower,
   type Announcement,
   type InsertAnnouncement,
+  type Admin,
+  type InsertAdmin,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { compare, hash, hashSync } from "bcryptjs";
 
 export interface IStorage {
   // Clubs
@@ -48,6 +51,11 @@ export interface IStorage {
   getAllAnnouncements(): Promise<Announcement[]>;
   getAnnouncementsByClubId(clubId: string): Promise<Announcement[]>;
   createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement>;
+  
+  // Admins
+  getAdminByEmail(email: string): Promise<Admin | undefined>;
+  createAdmin(admin: InsertAdmin): Promise<Admin>;
+  validateAdminPassword(admin: Admin, password: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -56,6 +64,7 @@ export class MemStorage implements IStorage {
   private registrations: Map<string, Registration>;
   private followers: Map<string, Follower>;
   private announcements: Map<string, Announcement>;
+  private admins: Map<string, Admin>;
 
   constructor() {
     this.clubs = new Map();
@@ -63,6 +72,7 @@ export class MemStorage implements IStorage {
     this.registrations = new Map();
     this.followers = new Map();
     this.announcements = new Map();
+  this.admins = new Map();
 
     this.seedData();
   }
@@ -174,18 +184,42 @@ export class MemStorage implements IStorage {
       title: "Tickets Now Available",
       content: "Get your tickets for the Spring Concert now! Limited seats available.",
     });
+
+    // Seed a super admin for development (email: admin@cheesecakeclub.com, password: admin123)
+    try {
+      const id = randomUUID();
+      const hashed = hashSync("admin123", 10);
+      const superAdmin: Admin = {
+        id,
+        email: "admin@cheesecakeclub.com",
+        password: hashed,
+        name: "Super Admin",
+        clubId: null,
+        isSuper: true,
+        createdAt: new Date(),
+      };
+      this.admins.set(id, superAdmin);
+    } catch (e) {
+      // ignore seeding errors in dev
+    }
   }
 
   private createClubSync(club: InsertClub): Club {
     const id = randomUUID();
-    const newClub: Club = { ...club, id, createdAt: new Date() };
+    const newClub: Club = { ...club, id, createdAt: new Date(), memberCount: club.memberCount ?? 0 };
     this.clubs.set(id, newClub);
     return newClub;
   }
 
   private createEventSync(event: InsertEvent): Event {
     const id = randomUUID();
-    const newEvent: Event = { ...event, id, createdAt: new Date() };
+    const newEvent: Event = {
+      ...event,
+      id,
+      createdAt: new Date(),
+      maxAttendees: event.maxAttendees ?? null,
+      rsvpCount: event.rsvpCount ?? 0,
+    };
     this.events.set(id, newEvent);
     return newEvent;
   }
@@ -365,6 +399,30 @@ export class MemStorage implements IStorage {
 
   async createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement> {
     return this.createAnnouncementSync(announcement);
+  }
+
+  // Admins
+  async getAdminByEmail(email: string): Promise<Admin | undefined> {
+    return Array.from(this.admins.values()).find(admin => admin.email === email);
+  }
+
+  async createAdmin(admin: InsertAdmin): Promise<Admin> {
+    const id = randomUUID();
+    const hashedPassword = await hash(admin.password, 10);
+    const newAdmin: Admin = {
+      ...admin,
+      id,
+      password: hashedPassword,
+      createdAt: new Date(),
+      clubId: admin.clubId ?? null,
+      isSuper: admin.isSuper ?? false,
+    };
+    this.admins.set(id, newAdmin);
+    return newAdmin;
+  }
+
+  async validateAdminPassword(admin: Admin, password: string): Promise<boolean> {
+    return compare(password, admin.password);
   }
 }
 

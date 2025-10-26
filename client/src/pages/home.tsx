@@ -85,6 +85,9 @@ export default function Home() {
               <Link href="/clubs" className="text-sm font-medium text-foreground hover-elevate px-3 py-2 rounded-md transition-colors" data-testid="link-clubs">
                 Clubs
               </Link>
+              <Link href="/admin/login" className="text-sm font-medium text-muted-foreground hover:text-foreground hover-elevate px-3 py-2 rounded-md transition-colors">
+                Admin
+              </Link>
             </div>
             <Link href="/dashboard">
               <Button data-testid="button-get-started">Get Started</Button>

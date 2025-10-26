@@ -60,8 +60,11 @@ app.use((req, res, next) => {
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
+  log("Starting server in " + app.get("env") + " mode");
   if (app.get("env") === "development") {
+    log("Setting up Vite development server...");
     await setupVite(app, server);
+    log("Vite development server setup complete");
   } else {
     serveStatic(app);
   }
@@ -71,11 +74,19 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
+  // `reusePort` is not supported on some platforms (notably Windows)
+  // and causes an ENOTSUP error. Only set it when the platform
+  // supports it (non-win32).
+  const listenOpts: any = {
     port,
     host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
+  };
+
+  if (process.platform !== 'win32') {
+    listenOpts.reusePort = true;
+  }
+
+  server.listen(listenOpts, () => {
     log(`serving on port ${port}`);
   });
 })();

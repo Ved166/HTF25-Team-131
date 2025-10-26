@@ -26,12 +26,22 @@ export async function setupVite(app: Express, server: Server) {
     allowedHosts: true as const,
   };
 
+  log("Starting Vite dev server...");
   const vite = await createViteServer({
     ...viteConfig,
     configFile: false,
     customLogger: {
       ...viteLogger,
+      info: (msg, options) => {
+        log(msg, "vite");
+        viteLogger.info(msg, options);
+      },
+      warn: (msg, options) => {
+        log(msg, "vite");
+        viteLogger.warn(msg, options);
+      },
       error: (msg, options) => {
+        log(msg, "vite");
         viteLogger.error(msg, options);
         process.exit(1);
       },
@@ -39,6 +49,7 @@ export async function setupVite(app: Express, server: Server) {
     server: serverOptions,
     appType: "custom",
   });
+  log("Vite dev server started successfully");
 
   app.use(vite.middlewares);
   app.use("*", async (req, res, next) => {
@@ -58,8 +69,10 @@ export async function setupVite(app: Express, server: Server) {
         `src="/src/main.tsx"`,
         `src="/src/main.tsx?v=${nanoid()}"`,
       );
+      log(`Serving index.html for ${url}`);
       const page = await vite.transformIndexHtml(url, template);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
+      log(`Successfully served index.html for ${url}`);
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);
       next(e);
@@ -82,4 +95,8 @@ export function serveStatic(app: Express) {
   app.use("*", (_req, res) => {
     res.sendFile(path.resolve(distPath, "index.html"));
   });
+}
+
+export function onViteReady() {
+  log("Vite development server is ready");
 }

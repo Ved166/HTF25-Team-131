@@ -352,7 +352,7 @@ export default function EventDetail() {
                   </Button>
                   <Link href={`/clubs/${event.clubId}`} className="block">
                     <Button variant="ghost" className="w-full" data-testid="button-view-club">
-                      View {event.club}
+                      View {club?.name ?? 'Club'}
                     </Button>
                   </Link>
                 </div>

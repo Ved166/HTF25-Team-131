@@ -59,6 +59,9 @@ export default function Events() {
               <Link href="/clubs">
                 <Button variant="ghost" size="sm" data-testid="button-clubs">Clubs</Button>
               </Link>
+              <Link href="/admin/login">
+                <Button variant="ghost" size="sm">Admin</Button>
+              </Link>
               <Button variant="ghost" size="icon" data-testid="button-notifications">
                 <Bell className="h-5 w-5" />
               </Button>

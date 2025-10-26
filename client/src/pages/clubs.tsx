@@ -49,6 +49,9 @@ export default function Clubs() {
               <Link href="/events">
                 <Button variant="ghost" size="sm" data-testid="button-events">Events</Button>
               </Link>
+              <Link href="/admin/login">
+                <Button variant="ghost" size="sm">Admin</Button>
+              </Link>
               <Button variant="ghost" size="icon" data-testid="button-notifications">
                 <Bell className="h-5 w-5" />
               </Button>
